@@ -85,7 +85,22 @@ Prerequisites: Docker + Docker Compose, .NET SDK installed.
 - Publisher implementation: [`IntegrationEventPublisher.cs`](src/Sales/Sales.Infrastructure/Messaging/IntegrationEventPublisher.cs)
 - Compose services with RabbitMQ via [`docker-compose.yml`](docker-compose.yml)
 
-## Developer UX
-- Global exception handling: [`ExceptionHandlingMiddleware.cs`](src/Sales/Sales.Api/Middleware/ExceptionHandlingMiddleware.cs)
-- Paginated responses and mapping helpers for simple, consistent APIs.
-- Helper script for quick sales flow testing: [`test-sales.bat`](scripts/test-sales.bat)
+
+## Quick Run (Docker)
+- Clone this repository.
+- Build and start everything with Docker Compose:
+  ```
+  docker compose up --build
+  ```
+- Open Postman; the collection below works end-to-end against the running containers defined in [`docker-compose.yml`](docker-compose.yml).
+
+## Postman Collection
+- Import the collection: [`DeveloperStore.postman_collection.json`](.doc/postman/DeveloperStore.postman_collection.json)
+- Usage flow:
+  1) Use the Auth/Login request to sign in.
+  2) The JWT token is stored automatically by the collection and attached to subsequent requests.
+  3) Call Sales → Get All Sales to verify the responses.
+- Example run with logs:
+  
+  ![Running with logs](.doc/images/running-with-logs.png)
+
