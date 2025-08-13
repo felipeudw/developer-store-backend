@@ -90,8 +90,10 @@ namespace Sales.Infrastructure.Repositories
                     }
                     else
                     {
-                        tracked.GetType(); // no-op to avoid warnings
-                        _db.Entry(item).State = EntityState.Added;
+                        // Ensure the relationship is set for newly added items
+                        var entry = _db.Entry(item);
+                        entry.Property("SaleId").CurrentValue = tracked.Id; // set shadow FK
+                        entry.State = EntityState.Added;
                     }
                 }
             }
