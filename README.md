@@ -1,77 +1,91 @@
-# Developer Evaluation Project
+# Developer Store Backend
+A pragmatic .NET microservices backend showcasing clean architecture, messaging, validation, and testing—built to be read quickly and run easily.
 
-`READ CAREFULLY`
+See [`challenge.md`](challenge.md) for the original task.
 
-## Use Case
-**You are a developer on the DeveloperStore team. Now we need to implement the API prototypes.**
-
-As we work with `DDD`, to reference entities from other domains, we use the `External Identities` pattern with denormalization of entity descriptions.
-
-Therefore, you will write an API (complete CRUD) that handles sales records. The API needs to be able to inform:
-
-* Sale number
-* Date when the sale was made
-* Customer
-* Total sale amount
-* Branch where the sale was made
-* Products
-* Quantities
-* Unit prices
-* Discounts
-* Total amount for each item
-* Cancelled/Not Cancelled
-
-It's not mandatory, but it would be a differential to build code for publishing events of:
-* SaleCreated
-* SaleModified
-* SaleCancelled
-* ItemCancelled
-
-If you write the code, **it's not required** to actually publish to any Message Broker. You can log a message in the application log or however you find most convenient.
-
-### Business Rules
-
-* Purchases above 4 identical items have a 10% discount
-* Purchases between 10 and 20 identical items have a 20% discount
-* It's not possible to sell above 20 identical items
-* Purchases below 4 items cannot have a discount
-
-These business rules define quantity-based discounting tiers and limitations:
-
-1. Discount Tiers:
-   - 4+ items: 10% discount
-   - 10-20 items: 20% discount
-
-2. Restrictions:
-   - Maximum limit: 20 items per product
-   - No discounts allowed for quantities below 4 items
-
-## Overview
-This section provides a high-level overview of the project and the various skills and competencies it aims to assess for developer candidates. 
-
-See [Overview](/.doc/overview.md)
+## Skills Evidence Matrix
+Concrete, skimmable evidence of key backend skills with direct source links:
+- Messaging (Rebus + RabbitMQ): [`SaleEvents.cs`](src/Sales/Sales.Application/IntegrationEvents/SaleEvents.cs), [`IntegrationEventPublisher.cs`](src/Sales/Sales.Infrastructure/Messaging/IntegrationEventPublisher.cs)
+- Validation (FluentValidation-style): [`Validators.cs`](src/Sales/Sales.Api/Validation/Validators.cs)
+- Error handling & problem details: [`ExceptionHandlingMiddleware.cs`](src/Sales/Sales.Api/Middleware/ExceptionHandlingMiddleware.cs)
+- Mapping (AutoMapper profiles): [`SalesMappingProfile.cs`](src/Sales/Sales.Api/Features/Sales/SalesMappingProfile.cs)
+- Pagination DTO: [`PaginatedResponse.cs`](src/Sales/Sales.Api/Common/PaginatedResponse.cs)
+- Domain rules (Sales): [`Domain.cs`](src/Sales/Sales.Domain/Domain.cs)
+- Auth & security building blocks: [`Security.cs`](src/Shared/Shared.Common/Security/Security.cs), [`Infrastructure.cs`](src/Auth/Auth.Api/Infrastructure/Infrastructure.cs)
+- Test strategy (unit/integration/functional): [`Sales.UnitTests/`](tests/Sales.UnitTests/), [`Sales.IntegrationTests/`](tests/Sales.IntegrationTests/), [`Sales.FunctionalTests/`](tests/Sales.FunctionalTests/)
 
 ## Tech Stack
-This section lists the key technologies used in the project, including the backend, testing, frontend, and database components. 
+- .NET (ASP.NET Core Web API)
+- Clean Architecture: API → Application → Domain → Infrastructure → Shared
+- Messaging: Rebus with RabbitMQ
+- Data Access: EF Core (DbContext, configurations)
+- Object Mapping: AutoMapper
+- Validation: FluentValidation-style validators and pipeline
+- Auth/Security: JWT, BCrypt-based hashing, shared security utilities
+- Testing: xUnit with unit, integration, and functional layers
+- Containers: Docker + docker-compose
 
-See [Tech Stack](/.doc/tech-stack.md)
+## Project Structure (high-level)
+```
+src/
+├─ Auth/
+│  └─ Auth.Api/                 # Authentication service (JWT issuing, infra)
+├─ Sales/
+│  ├─ Sales.Api/                # Public HTTP API (controllers, middleware, mapping, validation)
+│  ├─ Sales.Application/        # Use cases, integration events, ports
+│  ├─ Sales.Domain/             # Core domain model and rules
+│  └─ Sales.Infrastructure/     # EF, messaging (Rebus), repositories
+└─ Shared/
+   └─ Shared.Common/            # Cross-cutting (security, auth helpers, etc.)
 
-## Frameworks
-This section outlines the frameworks and libraries that are leveraged in the project to enhance development productivity and maintainability. 
+tests/
+├─ Sales.UnitTests/
+├─ Sales.IntegrationTests/
+└─ Sales.FunctionalTests/
 
-See [Frameworks](/.doc/frameworks.md)
+docker-compose.yml               # Local infra (RabbitMQ, DB, etc.)
+scripts/                         # Dev helpers (e.g., E2E flow)
+```
 
-<!-- 
-## API Structure
-This section includes links to the detailed documentation for the different API resources:
-- [API General](./docs/general-api.md)
-- [Products API](/.doc/products-api.md)
-- [Carts API](/.doc/carts-api.md)
-- [Users API](/.doc/users-api.md)
-- [Auth API](/.doc/auth-api.md)
--->
+## Architecture & Cross-Cutting
+- APIs: Thin controllers expose application use-cases and return consistent problem details via middleware.
+- Application: Orchestrates business use-cases and publishes integration events (outbox-friendly design).
+- Domain: Encapsulates rules and invariants; models kept persistence-agnostic.
+- Infrastructure: EF Core, repositories, and Rebus-based integration event publisher to RabbitMQ.
+- Messaging: Sales publishes domain events as integration events; other services can subscribe via Rebus.
+- Validation: Request validators ensure inputs; pipeline guards use-case execution with clear error messages.
 
-## Project Structure
-This section describes the overall structure and organization of the project files and directories. 
+## Run Locally (fast)
+Prerequisites: Docker + Docker Compose, .NET SDK installed.
 
-See [Project Structure](/.doc/project-structure.md)
+1) Start infra
+   - docker compose up -d
+
+2) Build solution
+   - dotnet build [`DeveloperStore.sln`](DeveloperStore.sln)
+
+3) Run APIs
+   - dotnet run --project src/Auth/Auth.Api/Auth.Api.csproj
+   - dotnet run --project src/Sales/Sales.Api/Sales.Api.csproj
+
+4) Try the endpoints
+   - Auth: [`Auth.Api.http`](src/Auth/Auth.Api/Auth.Api.http)
+   - Sales: [`Sales.Api.http`](src/Sales/Sales.Api/Sales.Api.http)
+
+## Tests
+- Run all tests:
+  - dotnet test
+- Test folders are organized by layer:
+  - Unit: [`Sales.UnitTests/`](tests/Sales.UnitTests/)
+  - Integration: [`Sales.IntegrationTests/`](tests/Sales.IntegrationTests/)
+  - Functional: [`Sales.FunctionalTests/`](tests/Sales.FunctionalTests/)
+
+## Messaging (Rebus + RabbitMQ)
+- Integration events live in: [`IntegrationEvents/`](src/Sales/Sales.Application/IntegrationEvents/)
+- Publisher implementation: [`IntegrationEventPublisher.cs`](src/Sales/Sales.Infrastructure/Messaging/IntegrationEventPublisher.cs)
+- Compose services with RabbitMQ via [`docker-compose.yml`](docker-compose.yml)
+
+## Developer UX
+- Global exception handling: [`ExceptionHandlingMiddleware.cs`](src/Sales/Sales.Api/Middleware/ExceptionHandlingMiddleware.cs)
+- Paginated responses and mapping helpers for simple, consistent APIs.
+- Helper script for quick sales flow testing: [`test-sales.bat`](scripts/test-sales.bat)
