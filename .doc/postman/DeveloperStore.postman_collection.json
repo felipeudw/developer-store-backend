@@ -1,0 +1,162 @@
+{
+  "info": {
+    "name": "Developer Store - Auth and Sales",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseAuthUrl", "value": "http://localhost:5133" },
+    { "key": "baseSalesUrl", "value": "http://localhost:5127" },
+    { "key": "token", "value": "" },
+    { "key": "saleId", "value": "" },
+    { "key": "itemId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseAuthUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@developerstore.dev\",\n  \"password\": \"Admin@123\"\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const jsonData = pm.response.json();",
+                  "let token = null;",
+                  "if (jsonData.access_token) { token = jsonData.access_token; }",
+                  "else if (jsonData.token) { token = jsonData.token; }",
+                  "else if (jsonData.data && (jsonData.data.access_token || jsonData.data.token)) { token = jsonData.data.access_token || jsonData.data.token; }",
+                  "if (token) {",
+                  "  pm.collectionVariables.set(\"token\", token);",
+                  "  console.log(\"Token saved to collection variables:\", token);",
+                  "} else {",
+                  "  console.warn(\"No token found in response\");",
+                  "}",
+                  "pm.test(\"Authenticated token captured\", function () {",
+                  "  pm.expect(pm.collectionVariables.get(\"token\")).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Sales",
+      "item": [
+        {
+          "name": "List Sales",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseSalesUrl}}/sales?page=1&pageSize=20"
+          }
+        },
+        {
+          "name": "Create Sale",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseSalesUrl}}/sales",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": \"S-{{$timestamp}}\",\n  \"saleDate\": null,\n  \"customerId\": \"cust-1\",\n  \"customerName\": \"Demo Customer\",\n  \"branchId\": \"br-1\",\n  \"branchName\": \"Main Branch\",\n  \"items\": [\n    { \"productId\": \"p-1\", \"productName\": \"Product A\", \"quantity\": 3, \"unitPrice\": 10.00 },\n    { \"productId\": \"p-2\", \"productName\": \"Product B\", \"quantity\": 5, \"unitPrice\": 20.00 }\n  ]\n}"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "const id = json.id || json.Id;",
+                  "if (id) { pm.collectionVariables.set(\"saleId\", id); }",
+                  "const items = json.items || json.Items || [];",
+                  "if (items.length) {",
+                  "  const firstItem = items[0];",
+                  "  const itemId = firstItem.id || firstItem.Id;",
+                  "  if (itemId) pm.collectionVariables.set(\"itemId\", itemId);",
+                  "}",
+                  "pm.test(\"Sale created and IDs captured\", function () {",
+                  "  pm.expect(pm.collectionVariables.get(\"saleId\")).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Sale by Id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseSalesUrl}}/sales/{{saleId}}"
+          }
+        },
+        {
+          "name": "Update Sale",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": "{{baseSalesUrl}}/sales/{{saleId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"saleNumber\": null,\n  \"saleDate\": null,\n  \"customerId\": null,\n  \"customerName\": null,\n  \"branchId\": null,\n  \"branchName\": null,\n  \"items\": [\n    { \"productId\": \"p-1\", \"productName\": \"Product A\", \"quantity\": 4, \"unitPrice\": 10.00 },\n    { \"productId\": \"p-2\", \"productName\": \"Product B\", \"quantity\": 10, \"unitPrice\": 20.00 }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Item",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseSalesUrl}}/sales/{{saleId}}/items/{{itemId}}/cancel"
+          }
+        },
+        {
+          "name": "Cancel Sale",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseSalesUrl}}/sales/{{saleId}}/cancel"
+          }
+        },
+        {
+          "name": "Delete Sale",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseSalesUrl}}/sales/{{saleId}}"
+          }
+        }
+      ]
+    }
+  ]
+}
